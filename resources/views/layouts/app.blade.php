@@ -3,335 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'EventKu - Wujudkan Event Impian Anda')</title>
-
-    <!-- Google Fonts (Plus Jakarta Sans & Poppins - Standar Modern Luxury) -->
+    <title>{{ $title ?? 'EventKu' }} - Modern Event Organizer</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-    <!-- Custom Luxury Styling -->
     <style>
         :root {
-            /* Tema Warna Baru: Royal Indigo & Champagne Gold */
-            --primary: #4F46E5;
-            --primary-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-            --primary-hover: #4338CA;
-            
-            --gold: #F59E0B;
-            --gold-gradient: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            --gold-hover: #D97706;
-
-            --dark-color: #0F172A;
-            --dark-card: #1E293B;
-            --light-bg: #F8FAFC;
-            --card-border: rgba(226, 232, 240, 0.8);
+            --teal-primary: #249D8F;
+            --teal-dark: #1A6B62;
+            --teal-light: #E6F5F3;
+            --accent-warm: #F4A261;
+            --accent-coral: #E76F51;
+            --dark-navy: #1B2A32;
+            --grad-teal: linear-gradient(135deg, #249D8F 0%, #1A6B62 100%);
+            --grad-dark: linear-gradient(135deg, #1B2A32 0%, #264653 100%);
         }
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--light-bg);
+            background-color: #F8FAFC;
             color: #334155;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            letter-spacing: -0.01em;
+            min-height: 100vh;
         }
 
-        h1, h2, h3, h4, h5, h6, .navbar-brand {
-            font-family: 'Poppins', sans-serif;
-            color: var(--dark-color);
-            letter-spacing: -0.02em;
-        }
-
-        /* Navbar Glassmorphism Elegan */
+        /* NAVBAR */
         .navbar-custom {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-            padding: 16px 0;
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(36, 157, 143, 0.08);
+            border-bottom: 1px solid rgba(36, 157, 143, 0.15);
+            padding: 14px 0;
         }
 
         .navbar-brand {
             font-weight: 800;
+            font-size: 1.45rem;
+            color: var(--dark-navy) !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .navbar-brand span {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .navbar-brand small {
-            background: var(--gold-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 0.85rem;
-            font-weight: 800;
+        .brand-badge {
+            background: var(--grad-teal);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 1.1rem;
         }
 
         .nav-link {
             font-weight: 600;
             color: #475569 !important;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            position: relative;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+            transition: all 0.25s ease;
         }
 
         .nav-link:hover, .nav-link.active {
-            color: var(--primary) !important;
+            color: var(--teal-primary) !important;
+            background-color: var(--teal-light);
         }
 
-        .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 15%;
-            width: 70%;
-            height: 3px;
-            background: var(--primary-gradient);
+        .btn-teal {
+            background: var(--grad-teal);
+            color: white !important;
+            font-weight: 600;
+            border: none;
+            padding: 10px 22px;
             border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(36, 157, 143, 0.3);
+            transition: all 0.3s ease;
         }
 
-        /* Tombol Utama Mewah (Royal Gradient with Subtle Glow) */
-        .btn-primary-custom {
-            background: var(--primary-gradient);
-            border: none;
-            color: #ffffff;
-            font-weight: 700;
-            padding: 11px 26px;
-            border-radius: 50px;
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
-            transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
-        }
-
-        .btn-primary-custom:hover {
-            color: #ffffff;
+        .btn-teal:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
+            box-shadow: 0 8px 22px rgba(36, 157, 143, 0.45);
         }
 
-        /* Tombol Aksen Emas (Champagne Gold) */
-        .btn-secondary-custom {
-            background: var(--gold-gradient);
-            border: none;
-            color: #ffffff;
+        .btn-teal-outline {
+            border: 2px solid var(--teal-primary);
+            color: var(--teal-primary) !important;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 10px;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .btn-teal-outline:hover {
+            background: var(--teal-primary);
+            color: white !important;
+        }
+
+        .badge-teal {
+            background-color: var(--teal-light);
+            color: var(--teal-dark);
+            border: 1px solid rgba(36, 157, 143, 0.3);
             font-weight: 700;
-            padding: 11px 26px;
-            border-radius: 50px;
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
-            transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+            padding: 6px 12px;
+            border-radius: 50rem;
         }
 
-        .btn-secondary-custom:hover {
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.45);
+        .text-teal { color: var(--teal-primary) !important; }
+        .bg-teal-gradient { background: var(--grad-teal) !important; }
+
+        /* FLOATING TOAST POPUP NOTIFICATION (AUTO DISMISS) */
+        .toast-container-custom {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
         }
 
-        /* Kartu Elegan dengan Border Halus */
-        .card {
-            border: 1px solid var(--card-border) !important;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .toast-popup {
+            pointer-events: auto;
+            min-width: 320px;
+            max-width: 420px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.5s 3.8s forwards;
         }
 
-        /* Badge Mewah */
-        .badge.bg-warning {
-            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%) !important;
-            color: #92400E !important;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            font-weight: 700;
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        .badge.bg-light.text-primary {
-            background: #EEF2FF !important;
-            color: #4F46E5 !important;
-            border: 1px solid #E0E7FF !important;
-            font-weight: 700;
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
         }
 
-        /* Footer Mewah Velvet Slate */
-        footer {
-            background: linear-gradient(180deg, #0F172A 0%, #090D16 100%);
+        /* FOOTER */
+        .footer-custom {
+            background: var(--grad-dark);
             color: #94A3B8;
             margin-top: auto;
-            padding: 70px 0 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 4px solid var(--teal-primary);
         }
 
-        footer h5, footer h6 {
-            color: #FFFFFF !important;
-            font-weight: 700;
-        }
-
-        footer a {
-            color: #94A3B8;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-
-        footer a:hover {
-            color: var(--gold);
-            transform: translateX(3px);
-            display: inline-block;
-        }
+        .footer-custom h5 { color: #FFFFFF; font-weight: 700; margin-bottom: 20px; }
+        .footer-custom a { color: #CBD5E1; text-decoration: none; }
+        .footer-custom a:hover { color: var(--teal-primary); }
     </style>
-    @yield('styles')
+    @stack('styles')
 </head>
 <body>
 
-    <!-- Navbar Responsif Bersih & Mewah -->
+    <!-- ================= FLOATING AUTO-POPUP NOTIFICATIONS ================= -->
+    <div class="toast-container-custom">
+        @if(session('success'))
+            <div class="toast-popup p-3 bg-white border d-flex align-items-center gap-3" style="border-left: 6px solid var(--teal-primary) !important;">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #E6F5F3; width: 40px; height: 40px;">
+                    <i class="bi bi-check-circle-fill text-teal fs-4"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <strong class="d-block text-dark small fw-bold">Berhasil!</strong>
+                    <span class="small text-muted">{{ session('success') }}</span>
+                </div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="toast-popup p-3 bg-white border d-flex align-items-center gap-3" style="border-left: 6px solid #E76F51 !important;">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0 bg-danger bg-opacity-10" style="width: 40px; height: 40px;">
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <strong class="d-block text-danger small fw-bold">Pemberitahuan</strong>
+                    <span class="small text-muted">{{ session('error') }}</span>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
-            <a class="navbar-brand fs-4 d-flex align-items-center" href="{{ url('/') }}">
-                <i class="bi bi-stars fs-3 me-2" style="color: var(--gold);"></i>
-                <span>Event</span>Ku<small class="ms-1">EO</small>
+            <a class="navbar-brand" href="{{ route('home') }}">
+                <span class="brand-badge"><i class="bi bi-stars"></i></span>
+                <span>EventKu<span class="text-teal">.</span></span>
             </a>
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-3 my-2 my-lg-0">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->is('/') ? 'active' : '' }}" href="{{ url('/') }}">Beranda</a>
+                        <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
+                            <i class="bi bi-house-door me-1"></i> Beranda
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->is('paket*') ? 'active' : '' }}" href="{{ url('/paket') }}">Paket Event</a>
+                        <a class="nav-link {{ request()->routeIs('paket.*') ? 'active' : '' }}" href="{{ route('paket.index') }}">
+                            <i class="bi bi-box-seam me-1"></i> Paket Acara
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->is('galeri*') ? 'active' : '' }}" href="{{ url('/galeri') }}">Galeri Portofolio</a>
+                        <a class="nav-link {{ request()->routeIs('galeri.*') ? 'active' : '' }}" href="{{ route('galeri.index') }}">
+                            <i class="bi bi-images me-1"></i> Galeri
+                        </a>
                     </li>
-                    
-                    @auth
-                        @if(Auth::user()->role === 'customer')
-                            <!-- Menu Khusus Pelanggan -->
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}" href="{{ url('/dashboard') }}">
-                                    <i class="bi bi-clock-history me-1"></i>Pesanan Saya
-                                </a>
-                            </li>
-                        @endif
+                </ul>
 
-                        <!-- Dropdown Profil Akun -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle fs-5" style="color: var(--primary);"></i>
-                                <span>{{ Auth::user()->name }}</span>
-                                @if(Auth::user()->role === 'admin')
-                                    <span class="badge bg-warning ms-1" style="font-size: 0.65rem;">Admin</span>
-                                @endif
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 p-2" style="min-width: 200px;">
-                                @if(Auth::user()->role === 'admin')
+                <div class="d-flex align-items-center gap-2">
+                    @auth
+                        <div class="dropdown">
+                            <button class="btn btn-teal dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i>
+                                <span>{{ Str::limit(auth()->user()->name, 12) }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
+                                @if(auth()->user()->role === 'admin')
                                     <li>
-                                        <a class="dropdown-item py-2 rounded-2" href="{{ url('/admin/dashboard') }}">
-                                            <i class="bi bi-speedometer2 me-2 text-primary"></i>Panel Admin
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2 rounded-2" href="{{ url('/admin/pesanan') }}">
-                                            <i class="bi bi-card-list me-2 text-primary"></i>Kelola Pesanan
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2 rounded-2" href="{{ url('/admin/paket') }}">
-                                            <i class="bi bi-box-seam me-2 text-primary"></i>Kelola Paket
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2 rounded-2" href="{{ url('/admin/galeri') }}">
-                                            <i class="bi bi-images me-2 text-primary"></i>Kelola Galeri
+                                        <a class="dropdown-item py-2 fw-semibold text-teal" href="{{ route('admin.dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-2"></i> Panel Admin
                                         </a>
                                     </li>
                                 @else
                                     <li>
-                                        <a class="dropdown-item py-2 rounded-2" href="{{ url('/dashboard') }}">
-                                            <i class="bi bi-clock-history me-2 text-primary"></i>Pesanan Saya
+                                        <a class="dropdown-item py-2 fw-semibold" href="{{ route('dashboard') }}">
+                                            <i class="bi bi-journal-text me-2"></i> Pesanan Saya
                                         </a>
                                     </li>
                                 @endif
-                                <li><hr class="dropdown-divider my-1"></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form action="{{ url('/logout') }}" method="POST">
+                                    <form action="{{ route('logout') }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="dropdown-item py-2 text-danger rounded-2">
-                                            <i class="bi bi-box-arrow-right me-2"></i>Keluar
+                                        <button type="submit" class="dropdown-item py-2 text-danger fw-semibold">
+                                            <i class="bi bi-box-arrow-right me-2"></i> Logout
                                         </button>
                                     </form>
                                 </li>
                             </ul>
-                        </li>
+                        </div>
                     @else
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url('/login') }}">Masuk</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-primary-custom btn-sm px-4" href="{{ url('/register') }}">Daftar Sekarang</a>
-                        </li>
+                        <a href="{{ route('login') }}" class="btn btn-teal-outline">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Masuk
+                        </a>
+                        <a href="{{ route('register') }}" class="btn btn-teal">
+                            <i class="bi bi-person-plus me-1"></i> Daftar
+                        </a>
                     @endauth
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Konten Utama Halaman -->
-    <main>
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow-1">
         @yield('content')
     </main>
 
-    <!-- Footer Mewah -->
-    <footer>
-        <div class="container">
-            <div class="row g-4 pb-4">
+    <!-- FOOTER -->
+    <footer class="footer-custom">
+        <div class="container py-5">
+            <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
-                    <h5 class="mb-3 d-flex align-items-center">
-                        <i class="bi bi-stars me-2" style="color: var(--gold);"></i>EventKu
-                    </h5>
-                    <p class="small" style="line-height: 1.8;">Partner terbaik untuk mewujudkan momen berharga Anda. Mulai dari pernikahan impian, pesta ulang tahun megah, hingga pertemuan korporat profesional dengan standar mutu tertinggi.</p>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="brand-badge"><i class="bi bi-stars"></i></span>
+                        <h4 class="text-white fw-bold mb-0">EventKu<span class="text-teal">.</span></h4>
+                    </div>
+                    <p class="text-secondary pe-lg-4">
+                        Wujudkan setiap momen perayaan spesial Anda menjadi memori tak terlupakan dengan pelayanan profesional dari kami.
+                    </p>
                 </div>
-                <div class="col-lg-2 col-md-6">
-                    <h6 class="mb-3">Kategori Layanan</h6>
-                    <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="{{ url('/paket?kategori=Pernikahan') }}">Pernikahan (Wedding)</a></li>
-                        <li class="mb-2"><a href="{{ url('/paket?kategori=Ulang+Tahun') }}">Pesta Ulang Tahun</a></li>
-                        <li class="mb-2"><a href="{{ url('/paket?kategori=Seminar') }}">Seminar & Bisnis</a></li>
-                        <li class="mb-2"><a href="{{ url('/galeri') }}">Portofolio Acara</a></li>
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h5>Navigasi</h5>
+                    <ul class="list-unstyled d-flex flex-column gap-2">
+                        <li><a href="{{ route('home') }}"><i class="bi bi-chevron-right text-teal me-1"></i> Beranda</a></li>
+                        <li><a href="{{ route('paket.index') }}"><i class="bi bi-chevron-right text-teal me-1"></i> Paket Acara</a></li>
+                        <li><a href="{{ route('galeri.index') }}"><i class="bi bi-chevron-right text-teal me-1"></i> Galeri Foto</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6 col-6">
+                    <h5>Layanan</h5>
+                    <ul class="list-unstyled d-flex flex-column gap-2">
+                        <li><a href="{{ route('paket.index') }}?kategori=Pernikahan">Wedding & Lamaran</a></li>
+                        <li><a href="{{ route('paket.index') }}?kategori=Ulang Tahun">Birthday Party</a></li>
+                        <li><a href="{{ route('paket.index') }}?kategori=Seminar">Corporate Gathering</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-6">
-                    <h6 class="mb-3">Hubungi Kami</h6>
-                    <ul class="list-unstyled small">
-                        <li class="mb-2"><i class="bi bi-geo-alt me-2" style="color: var(--gold);"></i>Jl. Sudirman No. 123, Jakarta</li>
-                        <li class="mb-2"><i class="bi bi-whatsapp me-2" style="color: var(--gold);"></i>+62 812-3456-7890</li>
-                        <li class="mb-2"><i class="bi bi-envelope me-2" style="color: var(--gold);"></i>halo@eventku.com</li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h6 class="mb-3">Jaminan & Keamanan</h6>
-                    <p class="small mb-2" style="line-height: 1.8;">Pembayaran aman terverifikasi mendukung transfer bank BCA, Mandiri, BNI, dan BRI.</p>
-                    <span class="badge bg-light text-primary px-3 py-2 rounded-pill small">
-                        <i class="bi bi-shield-check me-1"></i> Transaksi Terpercaya
-                    </span>
+                    <h5>Kontak</h5>
+                    <p class="text-secondary small mb-1"><i class="bi bi-geo-alt-fill text-teal me-1"></i> Jakarta, Indonesia</p>
+                    <p class="text-secondary small mb-1"><i class="bi bi-telephone-fill text-teal me-1"></i> +62 812-3456-7890</p>
+                    <p class="text-secondary small"><i class="bi bi-envelope-fill text-teal me-1"></i> halo@eventku.com</p>
                 </div>
             </div>
-            <hr style="border-color: rgba(255,255,255,0.1);">
-            <div class="text-center small pt-2" style="color: #64748B;">
-                &copy; {{ date('Y') }} EventKu Organizer &middot; Karya Proyek Pemrograman Web.
-            </div>
+        </div>
+        <div class="py-3 text-center text-secondary border-top border-white border-opacity-10 small">
+            © {{ date('Y') }} EventKu. All rights reserved.
         </div>
     </footer>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    @yield('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hapus elemen toast dari DOM otomatis setelah 4.3 detik
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('.toast-popup');
+            toasts.forEach(t => t.remove());
+        }, 4300);
+    </script>
+    @stack('scripts')
 </body>
 </html>

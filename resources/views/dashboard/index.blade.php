@@ -1,126 +1,171 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Pesanan Saya - EventKu')
-
 @section('content')
-<div class="container py-5">
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <h2 class="fw-bold mb-1">Halo, {{ Auth::user()->name }}! 👋</h2>
-            <p class="text-muted">Kelola dan pantau status pesanan acara Anda di sini.</p>
+<div class="py-5 bg-light">
+    <div class="container">
+        
+        <!-- HEADER DASHBOARD CUSTOMER -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <span class="badge px-3 py-2 rounded-pill fw-bold mb-2" 
+                      style="background-color: #E6F5F3; color: #249D8F; border: 1px solid rgba(36, 157, 143, 0.25);">
+                    <i class="bi bi-person-check-fill me-1"></i> Customer Area
+                </span>
+                <h2 class="fw-extrabold text-dark mb-0">Pesanan Saya</h2>
+                <p class="text-muted small mb-0">Pantau status perencanaan dan riwayat pembayaran acara Anda</p>
+            </div>
+            <div>
+                <a href="{{ route('paket.index') }}" class="btn btn-teal">
+                    <i class="bi bi-plus-circle me-1"></i> Pesan Acara Baru
+                </a>
+            </div>
         </div>
-        <div class="col-md-4 text-md-end">
-            <a href="{{ url('/paket') }}" class="btn btn-primary-custom">
-                <i class="bi bi-plus-circle me-1"></i> Pesan Event Baru
-            </a>
-        </div>
-    </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-4 mb-4 shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-2 fs-5"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4 shadow-sm" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-        <div class="card-header bg-white py-3 border-0">
-            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Riwayat Pemesanan Acara</h5>
-        </div>
-        <div class="card-body p-0">
-            @if($pesanans->isEmpty())
-                <div class="text-center py-5">
-                    <i class="bi bi-calendar-x text-muted" style="font-size: 3.5rem;"></i>
-                    <h5 class="fw-bold mt-3 text-secondary">Belum Ada Pesanan Acara</h5>
-                    <p class="text-muted small">Anda belum melakukan pemesanan paket event organizer apa pun.</p>
-                    <a href="{{ url('/paket') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4">
-                        Jelajahi Paket Event
-                    </a>
+        <!-- STATS CARDS -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 rounded-4 shadow-sm p-3 bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-3 d-flex align-items-center justify-content-center" style="background-color: #E6F5F3; width: 50px; height: 50px;">
+                            <i class="bi bi-box-seam-fill text-teal fs-4"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small">Total Pesanan</span>
+                            <h4 class="fw-bold text-dark mb-0">{{ $pesanans->count() }}</h4>
+                        </div>
+                    </div>
                 </div>
-            @else
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 rounded-4 shadow-sm p-3 bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-3 d-flex align-items-center justify-content-center bg-warning bg-opacity-10" style="width: 50px; height: 50px;">
+                            <i class="bi bi-clock-history text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small">Menunggu Pembayaran</span>
+                            <h4 class="fw-bold text-dark mb-0">{{ $pesanans->where('status', 'pending')->count() }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 rounded-4 shadow-sm p-3 bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-3 d-flex align-items-center justify-content-center bg-success bg-opacity-10" style="width: 50px; height: 50px;">
+                            <i class="bi bi-check2-circle text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small">Terkonfirmasi</span>
+                            <h4 class="fw-bold text-dark mb-0">{{ $pesanans->whereIn('status', ['confirmed', 'preparation', 'done'])->count() }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABEL DAFTAR PESANAN -->
+        <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
+                        <thead style="background-color: #E6F5F3; color: #134B45;">
                             <tr>
-                                <th class="ps-4">Kode & Tanggal Event</th>
-                                <th>Paket Dipilih</th>
-                                <th>Lokasi & Tamu</th>
-                                <th>Total Biaya</th>
-                                <th>Status Pesanan</th>
-                                <th class="text-end pe-4">Aksi</th>
+                                <th class="ps-4 py-3">Kode & Tanggal</th>
+                                <th class="py-3">Paket Acara</th>
+                                <th class="py-3">Lokasi & Tamu</th>
+                                <th class="py-3">Total Biaya</th>
+                                <th class="py-3 text-center">Status</th>
+                                <th class="pe-4 py-3 text-end">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($pesanans as $pesanan)
+                            @forelse($pesanans as $pesanan)
+                                @php
+                                    // Mengambil koleksi addons secara aman tanpa error null
+                                    $addonItems = $pesanan->addons ?? $pesanan->pesananAddons ?? collect();
+                                    $tanggalEvent = $pesanan->tanggal_event ?? $pesanan->tanggal_acara ?? $pesanan->created_at;
+                                    $lokasiAcara = $pesanan->lokasi ?? $pesanan->lokasi_acara ?? '-';
+                                @endphp
                                 <tr>
-                                    <td class="ps-4">
-                                        <span class="fw-bold text-dark d-block">#{{ $pesanan->kode_pesanan }}</span>
-                                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ date('d M Y', strtotime($pesanan->tanggal_event)) }}</small>
+                                    <td class="ps-4 py-3">
+                                        <strong class="text-dark d-block">#{{ $pesanan->kode_pesanan }}</strong>
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar-event me-1"></i>
+                                            {{ \Carbon\Carbon::parse($tanggalEvent)->format('d M Y') }}
+                                        </small>
                                     </td>
-                                    <td>
-                                        <span class="fw-semibold text-primary">{{ $pesanan->paket->nama_paket }}</span>
-                                        <small class="text-muted d-block">{{ $pesanan->pesananAddons->count() }} Add-on Tambahan</small>
+                                    <td class="py-3">
+                                        <span class="fw-semibold text-dark d-block">{{ $pesanan->paket->nama_paket ?? '-' }}</span>
+                                        <small class="text-teal">
+                                            {{ $addonItems->count() }} Add-on Tambahan
+                                        </small>
                                     </td>
-                                    <td>
-                                        <span class="d-block">{{ $pesanan->lokasi }}</span>
-                                        <small class="text-muted"><i class="bi bi-people me-1"></i>{{ $pesanan->jumlah_tamu }} Tamu</small>
+                                    <td class="py-3">
+                                        <span class="d-block text-dark small fw-semibold text-truncate" style="max-width: 200px;">
+                                            <i class="bi bi-geo-alt text-danger me-1"></i>{{ $lokasiAcara }}
+                                        </span>
+                                        <small class="text-muted">
+                                            <i class="bi bi-people me-1"></i>{{ $pesanan->jumlah_tamu }} Tamu
+                                        </small>
                                     </td>
-                                    <td>
-                                        <span class="fw-bold text-dark">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</span>
+                                    <td class="py-3">
+                                        <strong class="text-teal">
+                                            Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}
+                                        </strong>
                                     </td>
-                                    <td>
-                                        @if($pesanan->status == 'pending')
-                                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">Menunggu Pembayaran</span>
-                                        @elseif($pesanan->status == 'dp_paid')
-                                            <span class="badge bg-info text-dark px-3 py-2 rounded-pill">DP Terbayar (50%)</span>
-                                        @elseif($pesanan->status == 'confirmed')
-                                            <span class="badge bg-success px-3 py-2 rounded-pill">Dikonfirmasi</span>
-                                        @elseif($pesanan->status == 'preparation')
-                                            <span class="badge bg-primary px-3 py-2 rounded-pill">Dalam Persiapan</span>
-                                        @elseif($pesanan->status == 'done')
-                                            <span class="badge bg-dark px-3 py-2 rounded-pill">Acara Selesai</span>
+                                    <td class="py-3 text-center">
+                                        @if($pesanan->status === 'pending')
+                                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill small">Menunggu Pembayaran</span>
+                                        @elseif($pesanan->status === 'dp_paid')
+                                            <span class="badge bg-info text-dark px-3 py-2 rounded-pill small">DP Terbayar</span>
+                                        @elseif($pesanan->status === 'confirmed')
+                                            <span class="badge bg-success text-white px-3 py-2 rounded-pill small">Terkonfirmasi</span>
+                                        @elseif($pesanan->status === 'preparation')
+                                            <span class="badge bg-primary text-white px-3 py-2 rounded-pill small">Dalam Persiapan</span>
+                                        @elseif($pesanan->status === 'done')
+                                            <span class="badge bg-secondary text-white px-3 py-2 rounded-pill small">Selesai</span>
                                         @else
-                                            <span class="badge bg-danger px-3 py-2 rounded-pill">Dibatalkan</span>
+                                            <span class="badge bg-danger text-white px-3 py-2 rounded-pill small">Dibatalkan</span>
                                         @endif
                                     </td>
-                                    <td class="text-end pe-4">
-                                        <div class="btn-group gap-1">
-                                            <!-- Tombol Detail / Bayar -->
-                                            <a href="{{ url('/pesanan/' . $pesanan->kode_pesanan) }}" class="btn btn-outline-primary btn-sm rounded-3" title="Lihat Rincian & Bayar">
-                                                <i class="bi bi-receipt"></i> Detail
+                                    <td class="pe-4 py-3 text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <a href="{{ route('pesanan.show', $pesanan->id) }}" class="btn btn-sm btn-teal px-3" title="Lihat Invoice & Bukti Bayar">
+                                                <i class="bi bi-receipt me-1"></i> Invoice
                                             </a>
-
-                                            <!-- Tombol Edit -->
-                                            @if(!in_array($pesanan->status, ['preparation', 'done']))
-                                                <a href="{{ url('/pesanan/' . $pesanan->kode_pesanan . '/edit') }}" class="btn btn-outline-warning btn-sm rounded-3 text-dark" title="Ubah Pesanan">
-                                                    <i class="bi bi-pencil-square"></i> Edit
-                                                </a>
+                                            @if($pesanan->status === 'pending')
+                                                <form action="{{ route('pesanan.destroy', $pesanan->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Batalkan Pesanan">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
                                             @endif
-
-                                            <!-- Tombol Hapus -->
-                                            <form action="{{ url('/pesanan/' . $pesanan->kode_pesanan) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pesanan ini?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" title="Hapus Pesanan">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="py-4">
+                                            <i class="bi bi-journal-x display-3 text-muted opacity-25"></i>
+                                            <h5 class="fw-bold text-dark mt-3 mb-1">Belum Ada Riwayat Pesanan</h5>
+                                            <p class="text-muted small">Anda belum melakukan pemesanan paket acara apapun.</p>
+                                            <a href="{{ route('paket.index') }}" class="btn btn-teal mt-2">
+                                                Jelajahi Paket Acara Sekarang
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
-            @endif
+            </div>
         </div>
+
     </div>
 </div>
 @endsection

@@ -2,61 +2,86 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Galeri;
-use App\Models\Paket;
-use App\Models\Pembayaran;
-use App\Models\Pesanan;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use App\Models\Pesanan;
+use App\Models\Pembayaran;
+use App\Models\Paket;
+use App\Models\Galeri;
+use App\Models\User;
 
 class AdminController extends Controller
 {
-    // Dashboard Utama Admin
+    /**
+     * Dashboard Utama Admin
+     */
     public function dashboard()
     {
-        $totalPesanan = Pesanan::count();
-        $totalPendapatan = Pembayaran::where('status', 'verified')->sum('jumlah');
-        $pesananPending = Pesanan::where('status', 'pending')->count();
-        $totalPaket = Paket::count();
+        $totalPesanan    = Pesanan::count();
+        $totalCustomer   = User::where('role', 'customer')->count();
+        $totalPaket      = Paket::count();
+        $pesananPending  = Pesanan::where('status', 'pending')->count();
+        
+        $totalPendapatan = 0;
+        if (Schema::hasColumn('pembayarans', 'jumlah')) {
+            $totalPendapatan = Pembayaran::where('status', 'verified')->sum('jumlah');
+        } elseif (Schema::hasColumn('pembayarans', 'jumlah_bayar')) {
+            $totalPendapatan = Pembayaran::where('status', 'verified')->sum('jumlah_bayar');
+        }
 
-        // 5 Pesanan terbaru yang masuk
-        $pesananTerbaru = Pesanan::with(['user', 'paket'])->latest()->take(5)->get();
-
-        // Pembayaran yang masih butuh verifikasi admin
-        $pembayaranPending = Pembayaran::with(['pesanan.user', 'pesanan.paket'])
+        $pembayaranPending = Pembayaran::with(['pesanan.user'])
             ->where('status', 'pending')
             ->latest()
+            ->take(6)
+            ->get();
+
+        $pesananTerbaru = Pesanan::with(['user', 'paket'])
+            ->latest()
+            ->take(6)
             ->get();
 
         return view('admin.dashboard', compact(
-            'totalPesanan', 
-            'totalPendapatan', 
-            'pesananPending', 
-            'totalPaket', 
-            'pesananTerbaru', 
-            'pembayaranPending'
+            'totalPesanan',
+            'totalCustomer',
+            'totalPaket',
+            'totalPendapatan',
+            'pesananPending',
+            'pembayaranPending',
+            'pesananTerbaru'
         ));
     }
 
-    // Halaman Manajemen Semua Pesanan
-    public function pesanan()
+    /**
+     * Tampilkan Semua Daftar Pesanan Customer (/admin/pesanan)
+     */
+    public function pesananIndex(Request $request)
     {
-        $pesanans = Pesanan::with(['user', 'paket', 'pembayarans'])->latest()->get();
+        $query = Pesanan::with(['user', 'paket', 'pembayarans', 'addons.addon'])->latest();
+
+        if ($request->has('status') && $request->status !== 'all' && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        $pesanans = $query->paginate(15);
+
         return view('admin.pesanan', compact('pesanans'));
     }
 
-    // Detail Pesanan Khusus di Panel SB Admin
-    public function detailPesanan($kode_pesanan)
+    /**
+     * Detail Pesanan Customer
+     */
+    public function pesananDetail($id)
     {
-        $pesanan = Pesanan::with(['user', 'paket', 'pesananAddons.addon', 'pembayarans'])
-            ->where('kode_pesanan', $kode_pesanan)
-            ->firstOrFail();
+        $pesanan = Pesanan::with(['user', 'paket', 'addons.addon', 'pembayarans'])
+            ->findOrFail($id);
 
         return view('admin.pesanan_detail', compact('pesanan'));
     }
 
-    // Update Status Acara oleh Admin
+    /**
+     * Update Status Pesanan Real-time
+     */
     public function updateStatusPesanan(Request $request, $id)
     {
         $request->validate([
@@ -66,157 +91,171 @@ class AdminController extends Controller
         $pesanan = Pesanan::findOrFail($id);
         $pesanan->update(['status' => $request->status]);
 
-        return back()->with('success', 'Status pesanan #' . $pesanan->kode_pesanan . ' berhasil diubah menjadi: ' . strtoupper($request->status));
+        return back()->with('success', 'Status pesanan #' . $pesanan->kode_pesanan . ' berhasil diperbarui!');
     }
 
-    // Verifikasi Bukti Pembayaran (Terima atau Tolak)
+    /**
+     * Verifikasi Bukti Pembayaran (DP -> "DP Paid", Pelunasan -> "Lunas / Confirmed")
+     */
     public function verifikasiPembayaran(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:verified,rejected',
-            'catatan_admin' => 'nullable|string'
+            'status' => 'required|in:verified,rejected'
         ]);
 
         $pembayaran = Pembayaran::with('pesanan')->findOrFail($id);
-        $pembayaran->update([
-            'status' => $request->status,
-            'catatan_admin' => $request->catatan_admin,
-        ]);
+        $pembayaran->update(['status' => $request->status]);
 
+        // LOGIKA STATUS OTOMATIS:
         if ($request->status === 'verified') {
-            if ($pembayaran->jenis === 'dp') {
+            $tipe = strtolower($pembayaran->jenis ?? $pembayaran->tipe ?? $pembayaran->tipe_pembayaran ?? 'dp');
+
+            if ($tipe === 'dp') {
+                // Saat pembayaran DP diverifikasi: Status menjadi dp_paid
                 $pembayaran->pesanan->update(['status' => 'dp_paid']);
-            } elseif ($pembayaran->jenis === 'pelunasan') {
+            } elseif ($tipe === 'pelunasan') {
+                // Saat pembayaran Pelunasan diverifikasi: Status menjadi confirmed (Lunas)
                 $pembayaran->pesanan->update(['status' => 'confirmed']);
             }
         }
 
-        return back()->with('success', 'Status pembayaran berhasil diperbarui!');
+        $pesan = $request->status === 'verified' 
+            ? 'Pembayaran berhasil diverifikasi! Status acara otomatis diperbarui.' 
+            : 'Pembayaran telah ditolak.';
+
+        return back()->with('success', $pesan);
     }
 
-    // Halaman Daftar Semua Paket untuk Admin
-    public function paket()
+    /**
+     * CRUD: Kelola Paket Acara
+     */
+    public function paketIndex()
     {
         $pakets = Paket::latest()->get();
         return view('admin.paket', compact('pakets'));
     }
 
-    // Simpan Paket Baru dengan Upload File Foto
-    public function storePaket(Request $request)
+    public function paketStore(Request $request)
     {
         $request->validate([
-            'nama_paket' => 'required|string|max:255',
-            'kategori' => 'required|string',
-            'harga' => 'required|numeric|min:100000',
-            'deskripsi' => 'required|string',
-            'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'nama_paket'  => 'required|string|max:255',
+            'kategori'    => 'required|string|max:100',
+            'harga'       => 'required|numeric|min:0',
+            'deskripsi'   => 'required|string',
+            'gambar'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        $tujuanFolder = public_path('uploads/paket');
-        if (!file_exists($tujuanFolder)) {
-            mkdir($tujuanFolder, 0777, true);
+        $gambarName = null;
+        if ($request->hasFile('gambar')) {
+            $destPath = public_path('uploads/paket');
+            if (!File::isDirectory($destPath)) {
+                File::makeDirectory($destPath, 0755, true, true);
+            }
+            $gambarName = time() . '_' . uniqid() . '.' . $request->gambar->extension();
+            $request->gambar->move($destPath, $gambarName);
         }
-
-        $file = $request->file('foto');
-        $filename = 'paket_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-        $file->move($tujuanFolder, $filename);
 
         Paket::create([
             'nama_paket' => $request->nama_paket,
-            'slug' => Str::slug($request->nama_paket) . '-' . time(),
-            'kategori' => $request->kategori,
-            'harga' => $request->harga,
-            'deskripsi' => $request->deskripsi,
-            'gambar' => $filename,
-            'is_active' => true,
+            'kategori'   => $request->kategori,
+            'harga'      => $request->harga,
+            'deskripsi'  => $request->deskripsi,
+            'gambar'     => $gambarName,
         ]);
 
-        return back()->with('success', 'Paket event baru dan fotonya berhasil ditambahkan!');
+        return back()->with('success', 'Paket acara baru berhasil ditambahkan!');
     }
 
-    // Update Paket
-    public function updatePaket(Request $request, $id)
+    public function paketUpdate(Request $request, $id)
     {
+        $paket = Paket::findOrFail($id);
+
         $request->validate([
             'nama_paket' => 'required|string|max:255',
-            'kategori' => 'required|string',
-            'harga' => 'required|numeric|min:100000',
-            'deskripsi' => 'required|string',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'kategori'   => 'required|string|max:100',
+            'harga'      => 'required|numeric|min:0',
+            'deskripsi'  => 'required|string',
+            'gambar'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        $paket = Paket::findOrFail($id);
-        $gambar = $paket->gambar;
+        $data = [
+            'nama_paket' => $request->nama_paket,
+            'kategori'   => $request->kategori,
+            'harga'      => $request->harga,
+            'deskripsi'  => $request->deskripsi,
+        ];
 
-        if ($request->hasFile('foto')) {
-            $tujuanFolder = public_path('uploads/paket');
-            if (!file_exists($tujuanFolder)) {
-                mkdir($tujuanFolder, 0777, true);
+        if ($request->hasFile('gambar')) {
+            $destPath = public_path('uploads/paket');
+            if (!File::isDirectory($destPath)) {
+                File::makeDirectory($destPath, 0755, true, true);
             }
-
-            $file = $request->file('foto');
-            $filename = 'paket_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move($tujuanFolder, $filename);
-            $gambar = $filename;
+            if ($paket->gambar && File::exists($destPath . '/' . $paket->gambar)) {
+                File::delete($destPath . '/' . $paket->gambar);
+            }
+            $gambarName = time() . '_' . uniqid() . '.' . $request->gambar->extension();
+            $request->gambar->move($destPath, $gambarName);
+            $data['gambar'] = $gambarName;
         }
 
-        $paket->update([
-            'nama_paket' => $request->nama_paket,
-            'kategori' => $request->kategori,
-            'harga' => $request->harga,
-            'deskripsi' => $request->deskripsi,
-            'gambar' => $gambar,
-        ]);
+        $paket->update($data);
 
-        return back()->with('success', 'Paket event berhasil diperbarui!');
+        return back()->with('success', 'Data paket acara berhasil diperbarui!');
     }
 
-    // Hapus Paket
-    public function destroyPaket($id)
+    public function paketDestroy($id)
     {
         $paket = Paket::findOrFail($id);
+        if ($paket->gambar && File::exists(public_path('uploads/paket/' . $paket->gambar))) {
+            File::delete(public_path('uploads/paket/' . $paket->gambar));
+        }
         $paket->delete();
 
-        return back()->with('success', 'Paket event berhasil dihapus!');
+        return back()->with('success', 'Paket acara berhasil dihapus.');
     }
 
-    // Halaman Galeri Admin
-    public function galeri()
+    /**
+     * CRUD: Kelola Galeri Dokumentasi Acara
+     */
+    public function galeriIndex()
     {
         $galeris = Galeri::latest()->get();
         return view('admin.galeri', compact('galeris'));
     }
 
-        // Upload Foto Galeri Baru
-    public function storeGaleri(Request $request)
+    public function galeriStore(Request $request)
     {
         $request->validate([
-            'judul' => 'required|string|max:255',
-            'kategori' => 'required|string',
-            'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'judul'    => 'required|string|max:255',
+            'kategori' => 'required|string|max:100',
+            'gambar'   => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
-        $file = $request->file('foto');
-        $filename = 'galeri_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-        
-        // Simpan ke public/uploads/galeri
-        $file->move(public_path('uploads/galeri'), $filename);
+        $destPath = public_path('uploads/galeri');
+        if (!File::isDirectory($destPath)) {
+            File::makeDirectory($destPath, 0755, true, true);
+        }
+
+        $gambarName = time() . '_' . uniqid() . '.' . $request->gambar->extension();
+        $request->gambar->move($destPath, $gambarName);
 
         Galeri::create([
-            'judul' => $request->judul,
+            'judul'    => $request->judul,
             'kategori' => $request->kategori,
-            'gambar' => $filename,
+            'gambar'   => $gambarName,
         ]);
 
-        return back()->with('success', 'Foto portofolio berhasil ditambahkan ke galeri!');
+        return back()->with('success', 'Foto dokumentasi galeri berhasil ditambahkan!');
     }
 
-    // Hapus Foto Galeri
-    public function destroyGaleri($id)
+    public function galeriDestroy($id)
     {
         $galeri = Galeri::findOrFail($id);
+        if ($galeri->gambar && File::exists(public_path('uploads/galeri/' . $galeri->gambar))) {
+            File::delete(public_path('uploads/galeri/' . $galeri->gambar));
+        }
         $galeri->delete();
 
-        return back()->with('success', 'Foto galeri berhasil dihapus!');
+        return back()->with('success', 'Foto galeri berhasil dihapus.');
     }
 }

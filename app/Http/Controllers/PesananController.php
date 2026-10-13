@@ -2,181 +2,121 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Addon;
-use App\Models\Paket;
-use App\Models\Pesanan;
-use App\Models\PesananAddon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Models\Paket;
+use App\Models\Addon;
+use App\Models\Pesanan;
 
 class PesananController extends Controller
 {
-    // Menampilkan Formulir Pemesanan Paket
-    public function create($slug)
+    /**
+     * Form pembuatan pesanan baru
+     */
+    public function create(Request $request)
     {
-        // Proteksi: Admin tidak boleh membuka form pemesanan
-        if (Auth::check() && Auth::user()->role === 'admin') {
-            return redirect('/admin/dashboard')->with('error', 'Akun Administrator tidak dapat melakukan pemesanan paket.');
-        }
-
-        $paket = Paket::where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $paket_id = $request->query('paket_id');
+        $paket = Paket::findOrFail($paket_id);
         $addons = Addon::all();
 
         return view('pesanan.create', compact('paket', 'addons'));
     }
 
-    // Memproses Simpan Pesanan Baru
+    /**
+     * Simpan pesanan baru ke database
+     */
     public function store(Request $request)
     {
-        // Proteksi: Admin tidak boleh submit pesanan
-        if (Auth::check() && Auth::user()->role === 'admin') {
-            return redirect('/admin/dashboard')->with('error', 'Akun Administrator tidak dapat melakukan pemesanan paket.');
-        }
-
         $request->validate([
-            'paket_id' => 'required|exists:pakets,id',
+            'paket_id'      => 'required|exists:pakets,id',
             'tanggal_event' => 'required|date|after:today',
-            'lokasi' => 'required|string|max:255',
-            'jumlah_tamu' => 'required|integer|min:10',
-            'catatan' => 'nullable|string',
-            'addons' => 'nullable|array',
-            'addons.*' => 'exists:addons,id',
+            'lokasi'        => 'required|string|max:255',
+            'jumlah_tamu'   => 'required|integer|min:1',
+            'catatan'       => 'nullable|string|max:1000',
+            'addons'        => 'nullable|array',
+            'addons.*'      => 'exists:addons,id',
+        ], [
+            'tanggal_event.after' => 'Tanggal acara harus setelah hari ini.',
+            'tanggal_event.required' => 'Tanggal acara wajib diisi.',
+            'lokasi.required' => 'Lokasi acara wajib diisi.',
+            'jumlah_tamu.required' => 'Jumlah tamu wajib diisi.',
         ]);
 
         $paket = Paket::findOrFail($request->paket_id);
-        $totalHarga = $paket->harga;
 
-        $selectedAddons = [];
-        if ($request->has('addons')) {
-            $addons = Addon::whereIn('id', $request->addons)->get();
-            foreach ($addons as $addon) {
-                $totalHarga += $addon->harga;
-                $selectedAddons[] = $addon;
+        // Hitung total harga: harga paket + subtotal semua addon
+        $totalHarga = (float) $paket->harga;
+        $addonData = [];
+
+        if ($request->addons) {
+            foreach ($request->addons as $addonId) {
+                $addon = Addon::find($addonId);
+                if ($addon) {
+                    $qty = 1;
+                    $subtotal = (float) $addon->harga * $qty;
+                    $totalHarga += $subtotal;
+
+                    // Simpan ke pivot dengan qty dan subtotal
+                    $addonData[$addonId] = [
+                        'qty'      => $qty,
+                        'subtotal' => $subtotal,
+                    ];
+                }
             }
         }
 
-        $kodePesanan = 'EO-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        // Buat kode pesanan unik
+        $kodePesanan = 'EVO-' . strtoupper(Str::random(6)) . '-' . date('dmY');
 
+        // Simpan pesanan
         $pesanan = Pesanan::create([
-            'user_id' => Auth::id(),
-            'paket_id' => $paket->id,
-            'kode_pesanan' => $kodePesanan,
+            'user_id'       => Auth::id(),
+            'paket_id'      => $paket->id,
+            'kode_pesanan'  => $kodePesanan,
             'tanggal_event' => $request->tanggal_event,
-            'lokasi' => $request->lokasi,
-            'jumlah_tamu' => $request->jumlah_tamu,
-            'catatan' => $request->catatan,
-            'total_harga' => $totalHarga,
-            'status' => 'pending',
+            'lokasi'        => $request->lokasi,
+            'jumlah_tamu'   => $request->jumlah_tamu,
+            'catatan'       => $request->catatan,
+            'total_harga'   => $totalHarga,
+            'status'        => 'pending',
         ]);
 
-        foreach ($selectedAddons as $addon) {
-            PesananAddon::create([
-                'pesanan_id' => $pesanan->id,
-                'addon_id' => $addon->id,
-                'qty' => 1,
-                'subtotal' => $addon->harga,
-            ]);
+        // Simpan addon ke tabel pivot
+        if (!empty($addonData)) {
+            $pesanan->addons()->sync($addonData);
         }
 
-        return redirect('/pesanan/' . $pesanan->kode_pesanan)->with('success', 'Pesanan Anda berhasil dibuat! Silakan lakukan pembayaran uang muka (DP).');
+        return redirect()->route('pesanan.show', $pesanan->id)
+            ->with('success', 'Pesanan berhasil dibuat! Silakan lanjutkan dengan pembayaran.');
     }
 
-    // Menampilkan Rincian Pesanan & Petunjuk Pembayaran
-    public function show($kode_pesanan)
+    /**
+     * Halaman detail & invoice pesanan customer
+     */
+    public function show($id)
     {
-        $pesanan = Pesanan::with(['paket', 'pesananAddons.addon', 'pembayarans', 'user'])
-            ->where('kode_pesanan', $kode_pesanan)
+        $pesanan = Pesanan::with(['user', 'paket', 'addons', 'pembayarans'])
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
             ->firstOrFail();
-
-        if (Auth::id() !== $pesanan->user_id && Auth::user()->role !== 'admin') {
-            abort(403, 'Akses tidak diizinkan.');
-        }
 
         return view('pesanan.show', compact('pesanan'));
     }
 
-    // Menampilkan Form Edit Pesanan
-    public function edit($kode_pesanan)
+    /**
+     * Batalkan pesanan (hanya yang masih pending)
+     */
+    public function destroy($id)
     {
-        $pesanan = Pesanan::with(['paket', 'pesananAddons'])->where('kode_pesanan', $kode_pesanan)->firstOrFail();
+        $pesanan = Pesanan::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->where('status', 'pending')
+            ->firstOrFail();
 
-        if (Auth::id() !== $pesanan->user_id) {
-            abort(403);
-        }
-
-        if (in_array($pesanan->status, ['preparation', 'done'])) {
-            return back()->with('error', 'Pesanan yang sedang dipersiapkan atau sudah selesai tidak dapat diubah.');
-        }
-
-        $addons = Addon::all();
-        $selectedAddonIds = $pesanan->pesananAddons->pluck('addon_id')->toArray();
-
-        return view('pesanan.edit', compact('pesanan', 'addons', 'selectedAddonIds'));
-    }
-
-    // Memproses Simpan Perubahan Pesanan
-    public function update(Request $request, $kode_pesanan)
-    {
-        $pesanan = Pesanan::with('paket')->where('kode_pesanan', $kode_pesanan)->firstOrFail();
-
-        if (Auth::id() !== $pesanan->user_id) {
-            abort(403);
-        }
-
-        $request->validate([
-            'tanggal_event' => 'required|date|after:today',
-            'lokasi' => 'required|string|max:255',
-            'jumlah_tamu' => 'required|integer|min:10',
-            'catatan' => 'nullable|string',
-            'addons' => 'nullable|array',
-            'addons.*' => 'exists:addons,id',
-        ]);
-
-        $totalHarga = $pesanan->paket->harga;
-
-        $selectedAddons = [];
-        if ($request->has('addons')) {
-            $addons = Addon::whereIn('id', $request->addons)->get();
-            foreach ($addons as $addon) {
-                $totalHarga += $addon->harga;
-                $selectedAddons[] = $addon;
-            }
-        }
-
-        $pesanan->update([
-            'tanggal_event' => $request->tanggal_event,
-            'lokasi' => $request->lokasi,
-            'jumlah_tamu' => $request->jumlah_tamu,
-            'catatan' => $request->catatan,
-            'total_harga' => $totalHarga,
-        ]);
-
-        PesananAddon::where('pesanan_id', $pesanan->id)->delete();
-        foreach ($selectedAddons as $addon) {
-            PesananAddon::create([
-                'pesanan_id' => $pesanan->id,
-                'addon_id' => $addon->id,
-                'qty' => 1,
-                'subtotal' => $addon->harga,
-            ]);
-        }
-
-        return redirect('/dashboard')->with('success', 'Pesanan #' . $pesanan->kode_pesanan . ' berhasil diperbarui!');
-    }
-
-    // Menghapus Pesanan
-    public function destroy($kode_pesanan)
-    {
-        $pesanan = Pesanan::where('kode_pesanan', $kode_pesanan)->firstOrFail();
-
-        if (Auth::id() !== $pesanan->user_id && Auth::user()->role !== 'admin') {
-            abort(403);
-        }
-
-        $kode = $pesanan->kode_pesanan;
         $pesanan->delete();
 
-        return redirect('/dashboard')->with('success', 'Pesanan #' . $kode . ' berhasil dihapus.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Pesanan berhasil dibatalkan.');
     }
 }
